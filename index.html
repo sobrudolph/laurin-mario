@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Laurinkina hra</title>
+  <meta name="theme-color" content="#5ec2f0">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="assets/ikony/ikona-192.png">
+  <link rel="apple-touch-icon" href="assets/ikony/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Laurinka">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="hra"></canvas>
+
+  <div id="nacitavanie" class="obrazovka">Načítavam…</div>
+
+  <div id="hud-tlacidla" class="skryte">
+    <button id="btn-zvuk" aria-label="Zvuk">🔊</button>
+    <button id="btn-pauza" aria-label="Pauza">⏸</button>
+  </div>
+
+  <div id="dotyk" class="skryte">
+    <div class="skupina vlavo">
+      <button data-k="vlavo" aria-label="Doľava">◀</button>
+      <button data-k="vpravo" aria-label="Doprava">▶</button>
+    </div>
+    <div class="skupina vpravo">
+      <button data-k="dole" class="male" aria-label="Zosadnúť">▼</button>
+      <button data-k="beh" class="beh" aria-label="Beh">B</button>
+      <button data-k="skok" class="skok" aria-label="Skok">▲</button>
+    </div>
+  </div>
+
+  <section id="menu" class="obrazovka skryte">
+    <div class="panel">
+      <h1>Laurinkina hra</h1>
+      <div class="obsah">
+      <div>
+      <p class="podnadpis">Vyber si postavičku</p>
+      <div class="postavy">
+        <button class="karta" data-postava="kreslena">
+          <img src="assets/hrac.png" alt="">
+          <span>Kreslený</span>
+        </button>
+        <button class="karta" data-postava="foto">
+          <canvas id="nahlad-foto"></canvas>
+          <span>S mojou tvárou</span>
+        </button>
+      </div>
+      </div>
+      <div>
+      <div class="riadok">
+        <button id="btn-odfot" class="sekundarne">📸 Odfotiť tvár</button>
+        <button id="btn-zmaz" class="sekundarne skryte">🗑 Zmazať fotku</button>
+      </div>
+      <button id="btn-hraj" class="hlavne">▶ Hrať</button>
+      <p id="naj-skore" class="info"></p>
+      <p class="info pc-len">Šípky = chôdza · Medzerník = skok · Shift = beh · ↓ = zosadnúť z mačky · P = pauza</p>
+      <p class="info">Fotka tváre zostáva len v tomto zariadení.</p>
+      <p id="verzia" class="verzia"></p>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pauza" class="obrazovka skryte">
+    <div class="panel">
+      <h2>Pauza</h2>
+      <button id="btn-pokracuj" class="hlavne">▶ Pokračovať</button>
+      <button id="btn-menu-p" class="sekundarne">🏠 Menu</button>
+    </div>
+  </section>
+
+  <section id="koniec" class="obrazovka skryte">
+    <div class="panel">
+      <h2 id="koniec-nadpis"></h2>
+      <p id="koniec-info" class="statistiky"></p>
+      <button id="btn-znova" class="hlavne">🔁 Hrať znova</button>
+      <button id="btn-menu-k" class="sekundarne">🏠 Menu</button>
+    </div>
+  </section>
+
+  <section id="foto" class="skryte">
+    <canvas id="foto-platno"></canvas>
+    <video id="video" playsinline muted autoplay></video>
+    <p id="foto-text" class="foto-text"></p>
+    <input id="foto-subor" type="file" accept="image/*" hidden>
+    <div id="foto-zoom-box" class="foto-zoom skryte">🔍 <input id="foto-zoom" type="range" min="1" max="4" step="0.01" value="1"></div>
+    <div class="foto-lista">
+      <button id="foto-spat" class="sekundarne">◀ Späť</button>
+      <button id="foto-otoc" class="sekundarne">🔄 Kamera</button>
+      <button id="foto-galeria" class="sekundarne">🖼 Z galérie</button>
+      <button id="foto-odfot" class="hlavne">📸 Odfotiť</button>
+      <button id="foto-znova" class="sekundarne skryte">↺ Znova</button>
+      <button id="foto-pouzi" class="hlavne skryte">✔ Použiť</button>
+    </div>
+  </section>
+
+  <div id="otoc" class="skryte">Otoč mobil na šírku 📱↻</div>
+
+  <script src="js/verzia.js"></script>
+  <script src="js/level1.js"></script>
+  <script src="js/zvuky.js"></script>
+  <script src="js/foto.js"></script>
+  <script src="js/hra.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "Laurinkina hra",
+  "short_name": "Laurinka",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#5ec2f0",
+  "theme_color": "#5ec2f0",
+  "lang": "sk",
+  "icons": [
+    { "src": "assets/ikony/ikona-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/ikony/ikona-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/ikony/ikona-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

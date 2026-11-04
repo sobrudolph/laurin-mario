@@ -1,0 +1,103 @@
+:root {
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --pismo: "Comic Sans MS", "Chalkboard SE", "Marker Felt", "Comic Neue", cursive;
+  --ruzova: #ff4f9a;
+  --ink: #1d1a18;
+  --papier: #fffaf0;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden; background: #5ec2f0;
+  font-family: var(--pismo); color: var(--ink);
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  touch-action: none; overscroll-behavior: none;
+}
+canvas#hra { position: fixed; inset: 0; display: block; }
+.skryte { display: none !important; }
+
+.obrazovka {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: max(12px, var(--safe-t)) max(16px, var(--safe-r)) max(12px, var(--safe-b)) max(16px, var(--safe-l));
+  background: rgba(30, 60, 90, 0.25); z-index: 10; overflow: auto;
+}
+#nacitavanie { font-size: 28px; color: #fff; text-shadow: 0 2px 0 var(--ink); }
+.panel {
+  background: var(--papier); border: 3px solid var(--ink); border-radius: 22px;
+  padding: 18px 22px; max-width: 560px; width: 100%; text-align: center;
+  box-shadow: 0 6px 0 rgba(0,0,0,0.25); margin: auto;
+}
+h1 { margin: 0; font-size: clamp(28px, 6vw, 42px); color: var(--ruzova); text-shadow: 2px 2px 0 var(--ink); letter-spacing: 1px; }
+h2 { margin: 4px 0 14px; font-size: 30px; }
+.podnadpis { margin: 4px 0 10px; font-size: 18px; }
+.postavy { display: flex; gap: 14px; justify-content: center; }
+.karta {
+  flex: 1; max-width: 190px; background: #fff; border: 3px solid #cbbfa8; border-radius: 16px;
+  padding: 10px; cursor: pointer; font-family: inherit; font-size: 17px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.karta img, .karta canvas { height: min(22vh, 120px); width: auto; max-width: 100%; object-fit: contain; }
+.karta.vybrana { border-color: var(--ruzova); box-shadow: 0 0 0 3px #ffd0e4; background: #fff5fa; }
+.riadok { display: flex; gap: 10px; justify-content: center; margin: 10px 0 4px; flex-wrap: wrap; }
+button.hlavne, button.sekundarne {
+  font-family: inherit; font-size: 20px; border: 3px solid var(--ink); border-radius: 14px;
+  padding: 10px 22px; cursor: pointer; box-shadow: 0 4px 0 var(--ink); margin: 6px 4px;
+}
+button.hlavne { background: #ffd23f; font-size: 24px; font-weight: bold; }
+button.sekundarne { background: #fff; font-size: 17px; padding: 8px 16px; }
+button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.info { font-size: 13px; margin: 6px 0 0; opacity: 0.75; }
+.verzia { font-size: 12px; margin: 8px 0 0; opacity: 0.5; }
+.statistiky { font-size: 20px; line-height: 1.6; }
+@media (hover: none) { .pc-len { display: none; } }
+@media (max-height: 480px) and (orientation: landscape) {
+  .panel { padding: 10px 16px; max-width: 760px; }
+  h1 { font-size: 28px; }
+  .obsah { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; align-items: center; }
+  .karta img, .karta canvas { height: 30vh; }
+  .riadok { margin-top: 0; }
+  button.hlavne { font-size: 20px; padding: 6px 18px; }
+  .info { font-size: 12px; }
+}
+
+#hud-tlacidla {
+  position: fixed; top: max(8px, var(--safe-t)); right: max(10px, var(--safe-r)); z-index: 5; display: flex; gap: 8px;
+}
+#hud-tlacidla button {
+  width: 44px; height: 44px; border-radius: 12px; border: 3px solid var(--ink); background: rgba(255,255,255,0.85);
+  font-size: 20px; cursor: pointer; padding: 0;
+}
+
+#dotyk {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; justify-content: space-between; align-items: flex-end;
+  padding: 0 max(14px, var(--safe-r)) max(14px, var(--safe-b)) max(14px, var(--safe-l)); pointer-events: none;
+}
+#dotyk .skupina { display: flex; gap: 12px; align-items: flex-end; pointer-events: auto; }
+#dotyk button {
+  width: clamp(54px, 17vh, 78px); height: clamp(54px, 17vh, 78px); border-radius: 50%; border: 3px solid rgba(29,26,24,0.8);
+  background: rgba(255,255,255,0.35); font-size: 28px; color: var(--ink); font-family: var(--pismo); padding: 0;
+}
+#dotyk button.skok { width: clamp(64px, 21vh, 96px); height: clamp(64px, 21vh, 96px); background: rgba(255,210,63,0.6); }
+#dotyk button.beh { background: rgba(255,79,154,0.45); font-weight: bold; }
+#dotyk button.male { width: clamp(40px, 12vh, 56px); height: clamp(40px, 12vh, 56px); font-size: 20px; }
+#dotyk button.stlacene { background: rgba(255,255,255,0.85); transform: scale(0.94); }
+
+#foto { position: fixed; inset: 0; z-index: 20; background: #f4efe4; }
+#foto-platno { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+#video { position: absolute; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+.foto-text {
+  position: absolute; top: max(10px, var(--safe-t)); left: 0; right: 0; margin: 0; text-align: center; font-size: 20px;
+  padding: 0 16px;
+}
+.foto-lista {
+  position: absolute; left: 0; right: 0; bottom: max(10px, var(--safe-b)); display: flex; justify-content: center; flex-wrap: wrap; gap: 4px;
+  padding: 0 12px;
+}
+.foto-zoom { position: absolute; left: 0; right: 0; bottom: calc(max(10px, var(--safe-b)) + 64px); text-align: center; font-size: 20px; }
+.foto-zoom input { width: min(280px, 60vw); vertical-align: middle; }
+
+#otoc {
+  position: fixed; top: 40%; left: 16px; right: 16px; text-align: center; z-index: 30; pointer-events: none;
+  background: rgba(255,250,240,0.92); border: 3px solid var(--ink); border-radius: 16px; padding: 12px; font-size: 20px;
+}
