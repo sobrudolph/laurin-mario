@@ -1,6 +1,6 @@
 // Service worker – offline hra + automatické aktualizácie.
 // VERZIA mení tools/nasad.py; zmena tohto súboru spustí aktualizáciu u všetkých hráčov.
-const VERZIA = '0.04';
+const VERZIA = '0.05';
 const CACHE = 'laurinka-' + VERZIA;
 const SUBORY = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
@@ -29,16 +29,20 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const zCache = () => caches.match(req, { ignoreSearch: true });
+  // podľa URL (nie podľa req) – navigačné požiadavky sa nedajú klonovať s inými voľbami
+  const zoSiete = fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
+    .then(res => {
+      if (res.ok) {
+        const kopia = res.clone();
+        caches.open(CACHE).then(c => c.put(req, kopia));
+      }
+      return res;
+    });
+  // pri slabom internete nečaká donekonečna: po 4 s spustí uloženú verziu (ak existuje)
+  const casovac = new Promise(ok => setTimeout(ok, 4000)).then(zCache).then(r => r || zoSiete);
   e.respondWith(
-    // podľa URL (nie podľa req) – navigačné požiadavky sa nedajú klonovať s inými voľbami
-    fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
-      .then(res => {
-        if (res.ok) {
-          const kopia = res.clone();
-          caches.open(CACHE).then(c => c.put(req, kopia));
-        }
-        return res;
-      })
-      .catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('index.html')))
+    Promise.race([zoSiete, casovac])
+      .catch(() => zCache().then(r => r || caches.match('index.html')))
   );
 });
