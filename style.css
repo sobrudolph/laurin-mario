@@ -78,7 +78,7 @@ button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
   width: clamp(54px, 17vh, 78px); height: clamp(54px, 17vh, 78px); border-radius: 50%; border: 3px solid rgba(29,26,24,0.8);
   background: rgba(255,255,255,0.35); font-size: 28px; color: var(--ink); font-family: var(--pismo); padding: 0;
 }
-#dotyk button.skok { width: clamp(64px, 21vh, 96px); height: clamp(64px, 21vh, 96px); background: rgba(255,210,63,0.6); }
+#dotyk button.skok { width: clamp(64px, 21vh, 96px); height: clamp(64px, 21vh, 96px); background: rgba(255,210,63,0.6); font-weight: bold; font-size: 34px; }
 #dotyk button.beh { background: rgba(255,79,154,0.45); font-weight: bold; }
 #dotyk button.male { width: clamp(40px, 12vh, 56px); height: clamp(40px, 12vh, 56px); font-size: 20px; }
 #dotyk button.stlacene { background: rgba(255,255,255,0.85); transform: scale(0.94); }
