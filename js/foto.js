@@ -41,10 +41,10 @@ window.Foto = (() => {
   let platno, c, video, stream = null, rezim = 'kamera', otocena = 'user';
   let obr = null, posun = { x: 0, y: 0 }, zoom = 1, zoomKamera = nacitajZoom(), zachytene = null;
   const KAMERA_PRIBLIZENIE = 1;
-  // predvolené priblíženie kamery: v okienku je ~65 % záberu; posuvník si zariadenie zapamätá
+  // predvolené priblíženie kamery: v okienku je ~1/3 šírky záberu; posuvník si zariadenie zapamätá
   function nacitajZoom() {
-    try { const v = parseFloat(localStorage.getItem('laurinka.zoomKamery')); if (v >= 1 && v <= 4) return v; } catch (e) {}
-    return 1.55;
+    try { const v = parseFloat(localStorage.getItem('laurinka.zoomKamery2')); if (v >= 1 && v <= 6) return v; } catch (e) {}
+    return 3.1;
   } // 1 = v okienku je celý záber kamery
   let sprite, meta, hotovo, beh = false, rozlozenie = null;
   const ukazovatele = new Map();
@@ -63,6 +63,7 @@ window.Foto = (() => {
     el('foto-pouzi').classList.toggle('skryte', !po);
     el('foto-zoom-box').classList.toggle('skryte', po);
     el('foto-zoom').min = 1;
+    el('foto-zoom').max = rezim === 'kamera' ? 6 : 4;
     el('foto-zoom').value = rezim === 'kamera' ? zoomKamera : zoom;
   }
 
@@ -224,7 +225,7 @@ window.Foto = (() => {
     el('foto-otoc').onclick = () => { otocena = otocena === 'user' ? 'environment' : 'user'; spustiKameru(); };
     el('foto-galeria').onclick = () => el('foto-subor').click();
     el('foto-subor').onchange = galeria;
-    el('foto-zoom').oninput = e => { const v = parseFloat(e.target.value); if (rezim === 'kamera') { zoomKamera = v; try { localStorage.setItem('laurinka.zoomKamery', String(v)); } catch (e) {} } else zoom = v; };
+    el('foto-zoom').oninput = e => { const v = parseFloat(e.target.value); if (rezim === 'kamera') { zoomKamera = v; try { localStorage.setItem('laurinka.zoomKamery2', String(v)); } catch (e) {} } else zoom = v; };
 
     platno.addEventListener('pointerdown', e => {
       if (rezim !== 'obrazok' || zachytene) return;
