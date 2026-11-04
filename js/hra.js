@@ -286,7 +286,7 @@
   // ---------------------------------------------------------------- hráč a stav hry
   let hrac = null;
   let hra = { zivoty: 3, mince: 0, skore: 0, nepriatelia: 0 };
-  let kamera = { x: 0 };
+  let kamera = { x: 0, y: 0 };
   let rezim = 'menu'; // menu | hra | pauza | koniec
   let vyhra = null;
   let postavaImg = null;
@@ -307,6 +307,7 @@
     hrac = novyHrac();
     vyhra = null;
     kamera.x = 0;
+    kamera.y = Math.max(0, VH - vyskaPohladu);
   }
   function znovuOdCheckpointu() {
     const cp = svet.checkpoint;
@@ -314,6 +315,7 @@
     hrac = novyHrac();
     vyhra = null;
     kamera.x = clamp(hrac.x - sirkaPohladu * 0.4, 0, svet.W * T - sirkaPohladu);
+    kamera.y = Math.max(0, VH - vyskaPohladu);
   }
 
   function popup(x, y, text) { svet.popupy.push({ x, y, text, t: 0 }); }
@@ -695,24 +697,37 @@
       kamera.x += (ciel - kamera.x) * 0.12;
     }
     kamera.x = clamp(kamera.x, 0, Math.max(0, svet.W * T - sirkaPohladu));
+    // zvislá kamera (na malých obrazovkách je vidno menej riadkov): drží sa dole, hore ide len keď treba
+    const maxY = Math.max(0, VH - vyskaPohladu);
+    if (!hrac.mrtvy) {
+      const cielY = clamp(Math.min(maxY, hrac.y - 2.2 * T), 0, maxY);
+      kamera.y += (cielY - kamera.y) * 0.1;
+    }
+    kamera.y = clamp(kamera.y, 0, maxY);
   }
 
   // ---------------------------------------------------------------- kreslenie
   const platno = $('hra');
   const c = platno.getContext('2d');
-  let mierka = 1, sirkaPohladu = 800, odsadenieY = 0, dpr = 1;
+  let mierka = 1, sirkaPohladu = 800, vyskaPohladu = VH, odsadenieY = 0, dpr = 1;
 
   function zmenaVelkosti() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     const W = innerWidth, H = innerHeight;
     platno.width = Math.round(W * dpr); platno.height = Math.round(H * dpr);
     platno.style.width = W + 'px'; platno.style.height = H + 'px';
-    mierka = H / VH;
+    // na nízkych obrazovkách (mobil) ukáže menej riadkov, aby boli postavičky väčšie
+    const radky = clamp(H / 40, 10, 15);
+    vyskaPohladu = radky * T;
+    mierka = H / vyskaPohladu;
     sirkaPohladu = W / mierka;
     odsadenieY = 0;
     if (sirkaPohladu < 14 * T) {
-      mierka = W / (14 * T); sirkaPohladu = 14 * T; odsadenieY = (H - VH * mierka) / 2;
+      mierka = W / (14 * T); sirkaPohladu = 14 * T;
+      vyskaPohladu = Math.min(VH, H / mierka);
+      odsadenieY = Math.max(0, (H - VH * mierka) / 2);
     }
+    if (svet) kamera.y = Math.max(0, VH - vyskaPohladu);
     $('otoc').classList.toggle('skryte', !(H > W * 1.1 && jeDotyk));
   }
   addEventListener('resize', zmenaVelkosti);
@@ -739,12 +754,14 @@
     if (!svet) return;
     c.setTransform(dpr * mierka, 0, 0, dpr * mierka, 0, dpr * odsadenieY);
     const kx = Math.round(kamera.x * mierka) / mierka;
+    const ky = Math.round(kamera.y * mierka) / mierka;
+    c.translate(0, -ky);
 
     // oblaky a kopce (paralaxa)
     const drift = svet.cas * 0.05;
     for (const o of POZ.oblaky) {
       const x = o.x - kx * 0.3 - drift % 4000;
-      if (x > -o.w && x < sirkaPohladu + 10) c.drawImage(o.cv, x, o.y, o.w, o.w * 0.5);
+      if (x > -o.w && x < sirkaPohladu + 10) c.drawImage(o.cv, x, o.y + ky * 0.8, o.w, o.w * 0.5);
     }
     for (const k of POZ.kopce) {
       const x = k.x - kx * 0.5;

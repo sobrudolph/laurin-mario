@@ -39,7 +39,8 @@ window.Tvar = (() => {
 window.Foto = (() => {
   const sekcia = () => document.getElementById('foto');
   let platno, c, video, stream = null, rezim = 'kamera', otocena = 'user';
-  let obr = null, posun = { x: 0, y: 0 }, zoom = 1, zachytene = null;
+  let obr = null, posun = { x: 0, y: 0 }, zoom = 1, zoomKamera = 1.15, zachytene = null;
+  const KAMERA_PRIBLIZENIE = 1; // 1 = v okienku je celý záber kamery
   let sprite, meta, hotovo, beh = false, rozlozenie = null;
   const ukazovatele = new Map();
   let pinch = null;
@@ -55,7 +56,9 @@ window.Foto = (() => {
     el('foto-galeria').classList.toggle('skryte', po);
     el('foto-znova').classList.toggle('skryte', !po);
     el('foto-pouzi').classList.toggle('skryte', !po);
-    el('foto-zoom-box').classList.toggle('skryte', po || rezim !== 'obrazok');
+    el('foto-zoom-box').classList.toggle('skryte', po);
+    el('foto-zoom').min = 1;
+    el('foto-zoom').value = rezim === 'kamera' ? zoomKamera : zoom;
   }
 
   async function spustiKameru() {
@@ -73,7 +76,7 @@ window.Foto = (() => {
       });
       video.srcObject = stream;
       await video.play().catch(() => {});
-      stav('Daj tvár do okienka a stlač Odfotiť');
+      stav('Daj tvár do okienka (posuvníkom priblížiš) a stlač Odfotiť');
     } catch (e) {
       stav('Kameru sa nepodarilo zapnúť. Skús fotku z galérie.');
     }
@@ -109,12 +112,15 @@ window.Foto = (() => {
     const L = rozlozenie;
     if (rezim === 'kamera') {
       if (!video || !video.videoWidth) return;
-      const vw = video.videoWidth, vh = video.videoHeight;
-      const sc = Math.max(L.W / vw, L.H / vh);
-      const dx = (L.W - vw * sc) / 2, dy = (L.H - vh * sc) / 2;
+      // obraz z kamery je priblížený na okienko tváre (tvár na selfie ho vyplní bez naťahovania rúk)
+      const vw = video.videoWidth, vh = video.videoHeight, fb = L.fb;
+      const sc = Math.max(fb.w / vw, fb.h / vh) * KAMERA_PRIBLIZENIE * zoomKamera;
+      const w = vw * sc, h = vh * sc;
+      const cx = fb.x + fb.w / 2, cy = fb.y + fb.h / 2;
       k.save();
-      if (otocena === 'user') { k.translate(L.W, 0); k.scale(-1, 1); }
-      k.drawImage(video, dx, dy, vw * sc, vh * sc);
+      k.translate(cx, cy);
+      if (otocena === 'user') k.scale(-1, 1);
+      k.drawImage(video, -w / 2, -h / 2, w, h);
       k.restore();
     } else if (obr) {
       const fb = L.fb;
@@ -213,7 +219,7 @@ window.Foto = (() => {
     el('foto-otoc').onclick = () => { otocena = otocena === 'user' ? 'environment' : 'user'; spustiKameru(); };
     el('foto-galeria').onclick = () => el('foto-subor').click();
     el('foto-subor').onchange = galeria;
-    el('foto-zoom').oninput = e => { zoom = parseFloat(e.target.value); };
+    el('foto-zoom').oninput = e => { const v = parseFloat(e.target.value); if (rezim === 'kamera') zoomKamera = v; else zoom = v; };
 
     platno.addEventListener('pointerdown', e => {
       if (rezim !== 'obrazok' || zachytene) return;

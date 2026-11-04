@@ -1,6 +1,6 @@
 // Service worker – offline hra + automatické aktualizácie.
 // VERZIA mení tools/nasad.py; zmena tohto súboru spustí aktualizáciu u všetkých hráčov.
-const VERZIA = '0.01';
+const VERZIA = '0.02';
 const CACHE = 'laurinka-' + VERZIA;
 const SUBORY = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
