@@ -38,7 +38,7 @@
     return new Promise((ok, chyba) => { const i = new Image(); i.onload = () => ok(i); i.onerror = chyba; i.src = src; });
   }
   async function nacitajAssety() {
-    const mena = ['hrac', 'hrac_foto', 'macka', 'hrib', 'korytnacka'];
+    const mena = ['hrac', 'hrac_foto', 'macka', 'hrib', 'korytnacka', 'minca', 'kocka_otaznik', 'kocka_hneda', 'trava', 'oblak'];
     await Promise.all(mena.map(async m => { IMG[m] = await nacitajObr('assets/' + m + '.png'); }));
     try { META = await (await fetch('assets/sprites.json')).json(); } catch (e) { META = {}; }
     if (!META.hrac_foto) META.hrac_foto = { face: [75, 67, 190, 112] };
@@ -83,6 +83,7 @@
     return cv;
   }
   const DL = {};
+  const TRAVA_H = 20, MINCA = 24; // výška pásu trávy a veľkosť mince (v pixeloch hry)
   function vytvorDlazdice() {
     const varianty = (meno, fn) => { DL[meno] = [0, 1, 2].map(i => platnoDlazdice(fn, meno.length * 97 + i * 31 + 7)); };
     varianty('zem', (c, r) => {
@@ -90,30 +91,22 @@
       cestaKrivo(c, r, 0, 0, T, T, 0.5); fixa(c, r, 0, 0, T, T, '#b06b38', '#6b3a1a');
       for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(4 + r() * 24, 4 + r() * 24, 1.5 + r() * 1.5, 0, 7); c.fillStyle = '#7b4422'; c.fill(); }
     });
-    varianty('trava', (c, r) => {
-      c.fillStyle = '#b06b38'; c.fillRect(0, 0, T, T);
-      cestaKrivo(c, r, 0, 0, T, T, 0.5); fixa(c, r, 0, 0, T, T, '#b06b38', '#6b3a1a');
-      c.beginPath(); c.moveTo(-1, 0);
-      for (let x = 0; x <= T; x += 4) c.lineTo(x, 9 + wob(r, 2.2));
-      c.lineTo(T + 1, 0); c.closePath();
-      fixa(c, r, 0, 0, T, 12, '#5db441', '#2e7a1f', 4);
-      c.beginPath(); c.moveTo(-1, 0);
-      for (let x = 0; x <= T; x += 4) c.lineTo(x, 0.5 + wob(r, 0.6));
-      obrys(c, 2);
-    });
-    varianty('B', (c, r) => {
-      cestaKrivo(c, r, 1, 1, T - 2, T - 2); fixa(c, r, 1, 1, T - 2, T - 2, '#d4583a', '#7a2716'); obrys(c, 2);
-      ciara(c, r, 2, 16, 30, 16); ciara(c, r, 16, 2, 16, 16); ciara(c, r, 8, 16, 8, 30); ciara(c, r, 24, 16, 24, 30);
-    });
-    const otaznik = (c, r) => {
-      cestaKrivo(c, r, 1, 1, T - 2, T - 2); fixa(c, r, 1, 1, T - 2, T - 2, '#f6bb34', '#b5700b'); obrys(c, 2);
-      c.font = 'bold 22px "Comic Sans MS", "Chalkboard SE", "Marker Felt", cursive';
-      c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.lineWidth = 3; c.strokeStyle = '#6b3a12'; c.strokeText('?', 16 + wob(r, 1), 17);
-      c.fillStyle = '#fff6d5'; c.fillText('?', 16 + wob(r, 1), 17);
-      [[5, 5], [27, 5], [5, 27], [27, 27]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 1.4, 0, 7); c.fillStyle = '#6b3a12'; c.fill(); });
-    };
-    varianty('?', otaznik);
+    // Laurinkina kreslená tráva: pás zopakovaný 2×, aby sa dal krájať po dlaždiciach bez konca
+    {
+      const im = IMG.trava, h = TRAVA_H, w = Math.round(im.width * h / im.height);
+      const cv = document.createElement('canvas'); cv.width = w * 4; cv.height = h * 2;
+      const c = cv.getContext('2d'); c.imageSmoothingQuality = 'high';
+      c.drawImage(im, 0, 0, w * 2, h * 2); c.drawImage(im, w * 2, 0, w * 2, h * 2);
+      DL.travaPas = cv; DL.travaSirka = w;
+    }
+    // Laurinkine kreslené kocky (variant 1 je zrkadlovo otočený, aby sa neopakovali rovnako)
+    const zKresby = (im, otacat) => [0, 1, 2].map(i => platnoDlazdice(c => {
+      c.imageSmoothingQuality = 'high';
+      if (otacat && i === 1) { c.translate(T, 0); c.scale(-1, 1); }
+      c.drawImage(im, 0, 0, T, T);
+    }, 1));
+    DL['B'] = zKresby(IMG.kocka_hneda, true);
+    DL['?'] = zKresby(IMG.kocka_otaznik, false);
     DL['H'] = DL['?'];
     varianty('U', (c, r) => {
       cestaKrivo(c, r, 1, 1, T - 2, T - 2); fixa(c, r, 1, 1, T - 2, T - 2, '#9b7656', '#54392a'); obrys(c, 2);
@@ -127,11 +120,11 @@
       cestaKrivo(c, r, 0, 1, T, 12, 0.8); fixa(c, r, 0, 1, T, 12, '#c98d4f', '#7a4b1f', 3); obrys(c, 2);
       ciara(c, r, 4, 7, 26, 7, 1, '#7a4b1f');
     });
-    DL.minca = platnoDlazdice((c, r) => {
-      c.beginPath(); c.ellipse(10, 12, 7.5, 10, 0, 0, 7);
-      fixa(c, r, 2, 2, 16, 20, '#ffd23f', '#c48a00', 3); obrys(c, 2);
-      ciara(c, r, 10, 6, 10, 18, 2, '#c48a00');
-    }, 5, 20, 24);
+    DL.minca = platnoDlazdice(c => {
+      const im = IMG.minca, k = Math.min(MINCA / im.width, MINCA / im.height);
+      c.imageSmoothingQuality = 'high';
+      c.drawImage(im, (MINCA - im.width * k) / 2, (MINCA - im.height * k) / 2, im.width * k, im.height * k);
+    }, 5, MINCA, MINCA);
     DL.srdce = platnoDlazdice((c, r) => {
       c.beginPath(); c.moveTo(12, 21);
       c.bezierCurveTo(-4, 10, 4, -1, 12, 6); c.bezierCurveTo(20, -1, 28, 10, 12, 21);
@@ -161,24 +154,9 @@
       const w = 220 + r() * 260, h = 70 + r() * 90;
       POZ.kopce.push({ x, w, h, cv: kopec(Math.round(w), Math.round(h), r() < 0.5 ? '#86cf6a' : '#74c25c') });
     }
-    const oblak = (w) => {
-      const h = w * 0.5;
-      const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = h * 2;
-      const c = cv.getContext('2d'); c.scale(2, 2);
-      const rr = rng(w * 13);
-      c.beginPath();
-      const n = 4;
-      for (let i = 0; i < n; i++) {
-        const cx = w * (0.22 + 0.56 * i / (n - 1)), cy = h * (0.55 - Math.sin(i / (n - 1) * Math.PI) * 0.18);
-        c.moveTo(cx + h * 0.33, cy); c.arc(cx, cy, h * (0.28 + rr() * 0.08), 0, Math.PI * 2);
-      }
-      c.fillStyle = '#ffffff'; c.fill();
-      c.lineWidth = 2; c.strokeStyle = 'rgba(40,60,90,0.55)'; c.stroke();
-      return cv;
-    };
     for (let x = 0; x < sirkaSveta * 0.6 + 1600; x += 200 + r() * 260) {
-      const w = Math.round(70 + r() * 70);
-      POZ.oblaky.push({ x, y: 30 + r() * 110, w, cv: oblak(w) });
+      const w = Math.round(80 + r() * 70);
+      POZ.oblaky.push({ x, y: 20 + r() * 110, w, h: w * IMG.oblak.height / IMG.oblak.width, cv: IMG.oblak });
     }
     const krik = (w) => {
       const h = 26;
@@ -761,7 +739,7 @@
     const drift = svet.cas * 0.05;
     for (const o of POZ.oblaky) {
       const x = o.x - kx * 0.3 - drift % 4000;
-      if (x > -o.w && x < sirkaPohladu + 10) c.drawImage(o.cv, x, o.y + ky * 0.8, o.w, o.w * 0.5);
+      if (x > -o.w && x < sirkaPohladu + 10) c.drawImage(o.cv, x, o.y + ky * 0.8, o.w, o.h);
     }
     for (const k of POZ.kopce) {
       const x = k.x - kx * 0.5;
@@ -790,11 +768,14 @@
         const b = svet.bump.get(x + ',' + y);
         if (b) off = -Math.sin((10 - b) / 10 * Math.PI) * 8;
         if (t === '#') {
-          const img = (tile(x, y - 1) !== '#') ? DL.trava[v] : DL.zem[v];
-          c.drawImage(img, x * T, y * T, T, T);
+          c.drawImage(DL.zem[v], x * T, y * T, T, T);
+          if (tile(x, y - 1) !== '#') {
+            const sx = (x * T) % DL.travaSirka;
+            c.drawImage(DL.travaPas, sx * 2, 0, T * 2, TRAVA_H * 2, x * T, y * T - 4, T, TRAVA_H);
+          }
         } else if (t === 'o') {
           const s = Math.abs(Math.cos(svet.cas * 0.06 + x * 0.5));
-          c.drawImage(DL.minca, x * T + 16 - 10 * s, y * T + 4, 20 * Math.max(0.15, s), 24);
+          c.drawImage(DL.minca, x * T + 16 - 12 * Math.max(0.15, s), y * T + 4, 24 * Math.max(0.15, s), 24);
         } else if (DL[t]) {
           c.drawImage(DL[t][v], x * T, y * T + off, T, T);
         }
@@ -839,7 +820,7 @@
 
     // častice
     for (const p of svet.castice) {
-      if (p.typ === 'minca') c.drawImage(DL.minca, p.x, p.y, 20, 24);
+      if (p.typ === 'minca') c.drawImage(DL.minca, p.x - 2, p.y, 24, 24);
       else if (p.typ === 'srdce') c.drawImage(DL.srdce, p.x, p.y, 24, 22);
       else { c.save(); c.translate(p.x + 8, p.y + 8); c.rotate(p.rot); c.drawImage(DL.B[0], 0, 0, 32, 32, -8, -8, 16, 16); c.restore(); }
     }
@@ -918,7 +899,7 @@
     c.font = 'bold 22px ' + FONT; c.textAlign = 'left'; c.textBaseline = 'middle';
     const txt = (t, x, y) => { c.lineWidth = 4; c.strokeStyle = '#1d1a18'; c.strokeText(t, x, y); c.fillStyle = '#fff'; c.fillText(t, x, y); };
     const pad = 14 + (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-l')) || 0) / s;
-    c.drawImage(DL.minca, pad, 12, 20, 24); txt('× ' + hra.mince, pad + 26, 25);
+    c.drawImage(DL.minca, pad, 12, 24, 24); txt('× ' + hra.mince, pad + 26, 25);
     c.drawImage(DL.srdce, pad + 100, 13, 24, 22); txt('× ' + hra.zivoty, pad + 130, 25);
     c.textAlign = 'center';
     txt('⭐ ' + hra.skore, W / s / 2, 25);
