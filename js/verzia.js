@@ -1,2 +1,2 @@
 // Verziu mení automaticky tools/nasad.py – ručne needitovať.
-window.HRA_VERZIA = "0.06";
+window.HRA_VERZIA = "0.07";

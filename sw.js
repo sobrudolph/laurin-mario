@@ -1,12 +1,14 @@
 // Service worker – offline hra + automatické aktualizácie.
 // VERZIA mení tools/nasad.py; zmena tohto súboru spustí aktualizáciu u všetkých hráčov.
-const VERZIA = '0.06';
+const VERZIA = '0.07';
 const CACHE = 'laurinka-' + VERZIA;
 const SUBORY = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/verzia.js', 'js/level1.js', 'js/zvuky.js', 'js/foto.js', 'js/hra.js',
   'assets/hrac.png', 'assets/hrac_foto.png', 'assets/macka.png', 'assets/hrib.png', 'assets/korytnacka.png',
   'assets/minca.png', 'assets/kocka_otaznik.png', 'assets/kocka_hneda.png', 'assets/trava.png', 'assets/oblak.png',
+  'assets/kamen.png', 'assets/krik.png', 'assets/kopec1.png', 'assets/kopec2.png', 'assets/domcek.png', 'assets/srdce.png',
+  'assets/vlajka_tyc.png', 'assets/vlajka_zastava.png', 'assets/macka_lieta.png', 'assets/macka_kocka.png',
   'assets/sprites.json', 'assets/ikony/ikona-192.png', 'assets/ikony/apple-touch-icon.png',
 ];
 

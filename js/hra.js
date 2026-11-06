@@ -15,11 +15,18 @@
     gDrz: 0.27, gPad: 0.9, maxPad: 9.5,
     odraz: 6.5, odrazDrz: 10,
     coyote: 6, buffer: 8,
+    mavnutie: 6.8, klzanie: 1.6,
   };
   const HRAC = { w: 26, h: 44 };
   const JAZDA = { w: 58, h: 72 };
   const MACKA = { w: 58, h: 44 };
-  const PEVNE = '#BS?HU';
+  const PEVNE = '#BS?HUM';
+  const TYC_W = 22; // šírka cieľovej tyče
+  // mačky na výber (otoc: -1 = kresba pozerá doľava)
+  const MACKY = {
+    siva:  { img: 'macka',       otoc: 1,  w: 76, h: 58, sedlo: 25, posun: 6 },
+    lieta: { img: 'macka_lieta', otoc: -1, w: 88, h: 50, sedlo: 27, posun: 12 },
+  };
 
   const $ = id => document.getElementById(id);
   const st = {
@@ -38,7 +45,8 @@
     return new Promise((ok, chyba) => { const i = new Image(); i.onload = () => ok(i); i.onerror = chyba; i.src = src; });
   }
   async function nacitajAssety() {
-    const mena = ['hrac', 'hrac_foto', 'macka', 'hrib', 'korytnacka', 'minca', 'kocka_otaznik', 'kocka_hneda', 'trava', 'oblak'];
+    const mena = ['hrac', 'hrac_foto', 'macka', 'hrib', 'korytnacka', 'minca', 'kocka_otaznik', 'kocka_hneda', 'trava', 'oblak',
+      'kamen', 'krik', 'kopec1', 'kopec2', 'domcek', 'srdce', 'vlajka_tyc', 'vlajka_zastava', 'macka_lieta', 'macka_kocka'];
     await Promise.all(mena.map(async m => { IMG[m] = await nacitajObr('assets/' + m + '.png'); }));
     try { META = await (await fetch('assets/sprites.json')).json(); } catch (e) { META = {}; }
     if (!META.hrac_foto) META.hrac_foto = { face: [75, 67, 190, 112] };
@@ -112,10 +120,8 @@
       cestaKrivo(c, r, 1, 1, T - 2, T - 2); fixa(c, r, 1, 1, T - 2, T - 2, '#9b7656', '#54392a'); obrys(c, 2);
       [[5, 5], [27, 5], [5, 27], [27, 27]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 1.4, 0, 7); c.fillStyle = '#3a2618'; c.fill(); });
     });
-    varianty('S', (c, r) => {
-      cestaKrivo(c, r, 1, 1, T - 2, T - 2, 1.4); fixa(c, r, 1, 1, T - 2, T - 2, '#a79d92', '#5d554d'); obrys(c, 2);
-      ciara(c, r, 6, 8, 13, 13, 1.2); ciara(c, r, 20, 22, 27, 25, 1.2); ciara(c, r, 22, 6, 25, 11, 1.2);
-    });
+    DL['S'] = zKresby(IMG.kamen, true);
+    DL['M'] = zKresby(IMG.macka_kocka, false);
     varianty('=', (c, r) => {
       cestaKrivo(c, r, 0, 1, T, 12, 0.8); fixa(c, r, 0, 1, T, 12, '#c98d4f', '#7a4b1f', 3); obrys(c, 2);
       ciara(c, r, 4, 7, 26, 7, 1, '#7a4b1f');
@@ -125,11 +131,11 @@
       c.imageSmoothingQuality = 'high';
       c.drawImage(im, (MINCA - im.width * k) / 2, (MINCA - im.height * k) / 2, im.width * k, im.height * k);
     }, 5, MINCA, MINCA);
-    DL.srdce = platnoDlazdice((c, r) => {
-      c.beginPath(); c.moveTo(12, 21);
-      c.bezierCurveTo(-4, 10, 4, -1, 12, 6); c.bezierCurveTo(20, -1, 28, 10, 12, 21);
-      fixa(c, r, 0, 0, 24, 22, '#ff4f7b', '#a3173b', 3); obrys(c, 2);
-    }, 9, 24, 22);
+    DL.srdce = platnoDlazdice(c => {
+      const im = IMG.srdce, k = Math.min(24 / im.width, 24 / im.height);
+      c.imageSmoothingQuality = 'high';
+      c.drawImage(im, (24 - im.width * k) / 2, (24 - im.height * k) / 2, im.width * k, im.height * k);
+    }, 9, 24, 24);
   }
 
   // pozadie – kopce, oblaky, kríky (predkreslené)
@@ -137,43 +143,19 @@
   function vytvorPozadie(sirkaSveta) {
     const r = rng(12345);
     POZ.kopce = []; POZ.oblaky = []; POZ.kriky = [];
-    const kopec = (w, h, farba) => {
-      const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = (h + 4) * 2;
-      const c = cv.getContext('2d'); c.scale(2, 2);
-      const rr = rng(w * 7 + h);
-      c.beginPath(); c.moveTo(0, h + 4);
-      for (let i = 0; i <= 20; i++) {
-        const t = i / 20, x = t * w;
-        c.lineTo(x, h + 4 - Math.sin(t * Math.PI) * h + wob(rr, 1.2));
-      }
-      c.closePath();
-      fixa(c, rr, 0, 0, w, h + 4, farba, '#1f5d2a', 6); obrys(c, 2.2);
-      return cv;
-    };
-    for (let x = -100; x < sirkaSveta * 0.45 + 1400; x += 260 + r() * 300) {
-      const w = 220 + r() * 260, h = 70 + r() * 90;
-      POZ.kopce.push({ x, w, h, cv: kopec(Math.round(w), Math.round(h), r() < 0.5 ? '#86cf6a' : '#74c25c') });
+    // Laurinkine kopce
+    for (let x = -100; x < sirkaSveta * 0.45 + 1400; x += 240 + r() * 280) {
+      const im = r() < 0.5 ? IMG.kopec1 : IMG.kopec2;
+      const h = 70 + r() * 70, w = h * im.width / im.height;
+      POZ.kopce.push({ x, w, h, cv: im });
     }
     for (let x = 0; x < sirkaSveta * 0.6 + 1600; x += 200 + r() * 260) {
       const w = Math.round(80 + r() * 70);
       POZ.oblaky.push({ x, y: 20 + r() * 110, w, h: w * IMG.oblak.height / IMG.oblak.width, cv: IMG.oblak });
     }
-    const krik = (w) => {
-      const h = 26;
-      const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = h * 2;
-      const c = cv.getContext('2d'); c.scale(2, 2);
-      const rr = rng(w * 3 + 1);
-      c.beginPath();
-      const n = Math.max(2, Math.round(w / 22));
-      for (let i = 0; i < n; i++) {
-        const cx = w * (0.5 + i) / n, rad = (w / n) * 0.62;
-        c.moveTo(cx + rad, h); c.arc(cx, h, rad, Math.PI * 2, Math.PI, true);
-      }
-      fixa(c, rr, 0, 0, w, h, '#4fae3e', '#1f5d2a', 4); obrys(c, 2);
-      return cv;
-    };
     for (let x = 120; x < sirkaSveta; x += 180 + r() * 380) {
-      POZ.kriky.push({ x, cv: krik(Math.round(44 + r() * 60)) });
+      const w = Math.round(50 + r() * 40);
+      POZ.kriky.push({ x, w, h: w * IMG.krik.height / IMG.krik.width, cv: IMG.krik });
     }
   }
 
@@ -197,22 +179,23 @@
           case 'P': s.start = { x, y }; ch = ' '; break;
           case 'g': s.nepr.push(novyNepriatel('hrib', x, y)); ch = ' '; break;
           case 'k': s.nepr.push(novyNepriatel('korytnacka', x, y)); ch = ' '; break;
-          case 'c': s.macka0 = { x, y }; ch = ' '; break;
+          case 'c': s.macka0 = { x, y }; s.mackaHned = true; ch = ' '; break;
+          case 'M': s.macka0 = { x: x + 1, y: y - 1 }; break;
           case 'C': s.checkpointy.push({ x, y, aktivny: checkpointX === x }); ch = ' '; break;
           case 'F': s.vlajka = { x, y, vlajkaY: 0 }; ch = 'S'; break;
         }
         g[y].push(ch);
       }
     }
-    if (s.macka0) s.macka = novaMacka(s.macka0.x * T + (T - MACKA.w) / 2, (s.macka0.y + 1) * T - MACKA.h);
+    if (s.mackaHned) s.macka = novaMacka(s.macka0.x * T + (T - MACKA.w) / 2, (s.macka0.y + 1) * T - MACKA.h);
     return s;
   }
   function novyNepriatel(typ, tx, ty) {
     const w = 28, h = typ === 'hrib' ? 30 : 40;
     return { typ, x: tx * T + (T - w) / 2, y: (ty + 1) * T - h, w, h, vx: -1, vy: 0, stav: 'chodi', t: 0, aktivny: false, chran: 0 };
   }
-  function novaMacka(x, y) {
-    return { x, y, w: MACKA.w, h: MACKA.h, vx: 0.6, vy: 0, stav: 'chodi', t: 0, domX: x, cakaj: 0, chod: 0 };
+  function novaMacka(x, y, druh = 'siva') {
+    return { druh, x, y, w: MACKA.w, h: MACKA.h, vx: 0.6, vy: 0, stav: 'chodi', t: 0, domX: x, cakaj: 0, chod: 0 };
   }
   const tile = (x, y) => (y < 0 || y >= svet.H || x < 0 || x >= svet.W) ? ' ' : svet.g[y][x];
   function pevne(x, y) {
@@ -265,7 +248,7 @@
   let hrac = null;
   let hra = { zivoty: 3, mince: 0, skore: 0, nepriatelia: 0 };
   let kamera = { x: 0, y: 0 };
-  let rezim = 'menu'; // menu | hra | pauza | koniec
+  let rezim = 'menu'; // menu | hra | pauza | koniec | vyber
   let vyhra = null;
   let postavaImg = null;
 
@@ -402,16 +385,38 @@
     const box = { x: m.x + m.w / 2 - JAZDA.w / 2, y: spodok - JAZDA.h, w: JAZDA.w, h: JAZDA.h };
     if (!boxVolny(box)) return false;
     Object.assign(hrac, box);
-    hrac.jazdi = true; hrac.vy = 0; hrac.naZemi = true;
+    hrac.jazdi = true; hrac.vy = 0; hrac.naZemi = true; hrac.druhMacky = m.druh || 'siva';
     svet.macka = null;
     zvuk('mnau');
     popup(hrac.x + hrac.w / 2, hrac.y - 4, 'Mňau!');
     return true;
   }
 
+  function otvorVyberMacky() {
+    rezim = 'vyber';
+    zvuk('mnau');
+    ukaz('vyber');
+  }
+  function vyberMacku(druh) {
+    if (druh) {
+      if (hrac.jazdi) {
+        hrac.druhMacky = druh;
+        zvuk('mnau'); popup(hrac.x + hrac.w / 2, hrac.y - 4, 'Mňau!');
+      } else {
+        svet.macka = null; // stará mačka odíde, príde nová
+        const m = novaMacka(hrac.x + hrac.w / 2 - MACKA.w / 2, hrac.y + hrac.h - MACKA.h, druh);
+        if (!nasadni(m)) svet.macka = m;
+      }
+      if (druh === 'lieta') popup(hrac.x + hrac.w / 2, hrac.y - 26, 'Stláčaj A a leť!');
+    }
+    rezim = 'hra';
+    ukaz(null);
+    posledny = performance.now();
+  }
+
   function zosadni(zraneny) {
     const spodok = hrac.y + hrac.h, cx = hrac.x + hrac.w / 2;
-    const m = novaMacka(cx - MACKA.w / 2, spodok - MACKA.h);
+    const m = novaMacka(cx - MACKA.w / 2, spodok - MACKA.h, hrac.druhMacky);
     m.cakaj = zraneny ? 90 : 40;
     if (zraneny) { m.stav = 'utek'; m.t = 0; m.vx = -hrac.smer * 3.5; }
     else { m.vx = 0.6 * hrac.smer; }
@@ -459,6 +464,12 @@
     }
 
     if (h.naZemi) h.coyote = F.coyote; else h.coyote--;
+    // lietajúca mačka: vo vzduchu každé stlačenie skoku = mávnutie hore
+    const lieta = h.jazdi && h.druhMacky === 'lieta';
+    if (lieta && novySkok && h.coyote <= 0) {
+      h.vy = -F.mavnutie; h.buffer = 0; h.mav = 14; zvuk('skok');
+    }
+    if (h.mav > 0) h.mav--;
     if (h.buffer > 0 && h.coyote > 0) {
       const r = clamp((Math.abs(h.vx) - 1) / (F.behMax - 1), 0, 1);
       h.vy = -(F.skok + (F.skokBeh - F.skok) * r) * (h.jazdi ? 1.08 : 1);
@@ -472,11 +483,21 @@
 
     const g = (h.vy < 0 && v.skok) ? F.gDrz : F.gPad;
     h.vy = Math.min(h.vy + g, F.maxPad);
+    if (lieta && v.skok && h.vy > F.klzanie) h.vy = F.klzanie; // držaním skoku pomaly plachtí
 
     h.predSpodok = h.y + h.h;
     posunX(h, h.vx);
     if (h.stena) h.vx = 0;
+    const bolNaZemi = h.naZemi;
     const naraz = posunY(h, h.vy);
+    if (h.y < 0) { h.y = 0; if (h.vy < 0) h.vy = 0; } // strop pri lietaní
+    // dopad na kocku s mačkou = výber mačky
+    if (h.naZemi && !bolNaZemi) {
+      const ty = Math.floor((h.y + h.h + 1) / T);
+      for (let x = Math.floor(h.x / T); x <= Math.floor((h.x + h.w - 0.01) / T); x++) {
+        if (tile(x, ty) === 'M') { otvorVyberMacky(); break; }
+      }
+    }
     if (naraz) {
       const cx = h.x + h.w / 2;
       let najlepsi = naraz.zasahy[0];
@@ -619,7 +640,7 @@
     const vl = svet.vlajka;
     vyhra = { faza: 'sklz', t: 0, tycX: vl.x * T + T / 2, chytilY: hrac.y };
     hrac.vx = 0; hrac.vy = 0;
-    hrac.x = vyhra.tycX - hrac.w + 4;
+    hrac.x = vyhra.tycX - TYC_W / 2 - hrac.w + 6;
     const bonus = Math.max(100, Math.round((12 * T - hrac.y) / (9 * T) * 50) * 100);
     pridajSkore(bonus, vyhra.tycX + 20, hrac.y);
     zvuk('vlajka');
@@ -712,6 +733,10 @@
 
   const FONT = '"Comic Sans MS", "Chalkboard SE", "Marker Felt", "Comic Neue", cursive';
 
+  function kresliMacku(druh, x, spodok, smer, bob, rot = 0) {
+    const d = MACKY[druh] || MACKY.siva;
+    kresliPostavu(IMG[d.img], x, spodok, d.w, d.h, smer * d.otoc, rot * d.otoc, bob);
+  }
   function kresliPostavu(img, x, spodok, w, h, smer, rot = 0, bob = 0, sx, sy, sw, sh) {
     c.save();
     c.translate(x, spodok);
@@ -743,14 +768,15 @@
     }
     for (const k of POZ.kopce) {
       const x = k.x - kx * 0.5;
-      if (x > -k.w && x < sirkaPohladu + 10) c.drawImage(k.cv, x, 13 * T - k.h - 4 + 6, k.w, k.h + 4);
+      if (x > -k.w && x < sirkaPohladu + 10) c.drawImage(k.cv, x, 13 * T - k.h + 6, k.w, k.h);
     }
     c.save();
     c.translate(-kx, 0);
     for (const k of POZ.kriky) {
       if (k.x > kx - 200 && k.x < kx + sirkaPohladu + 10) {
-        const tx = Math.floor(k.x / T);
-        if (tile(tx, 13) === '#' && tile(tx + 1, 13) === '#') c.drawImage(k.cv, k.x, 13 * T - k.cv.height / 2 + 2, k.cv.width / 2, k.cv.height / 2);
+        let naZemi = true;
+        for (let tx = Math.floor(k.x / T); tx <= Math.floor((k.x + k.w) / T); tx++) if (tile(tx, 13) !== '#') naZemi = false;
+        if (naZemi) c.drawImage(k.cv, k.x, 13 * T - k.h + 5, k.w, k.h);
       }
     }
 
@@ -791,7 +817,7 @@
     if (m) {
       const bob = m.naZemi ? -Math.abs(Math.sin(m.chod * 0.12)) * 2 : 0;
       const smer = m.vx >= 0 ? 1 : -1;
-      kresliPostavu(IMG.macka, m.x + m.w / 2, m.y + m.h + 3, 76, 58, smer, 0, bob);
+      kresliMacku(m.druh, m.x + m.w / 2, m.y + m.h + 3, smer, bob);
     }
 
     // nepriatelia
@@ -821,7 +847,7 @@
     // častice
     for (const p of svet.castice) {
       if (p.typ === 'minca') c.drawImage(DL.minca, p.x - 2, p.y, 24, 24);
-      else if (p.typ === 'srdce') c.drawImage(DL.srdce, p.x, p.y, 24, 22);
+      else if (p.typ === 'srdce') c.drawImage(DL.srdce, p.x, p.y, 24, 24);
       else { c.save(); c.translate(p.x + 8, p.y + 8); c.rotate(p.rot); c.drawImage(DL.B[0], 0, 0, 32, 32, -8, -8, 16, 16); c.restore(); }
     }
     c.font = 'bold 14px ' + FONT; c.textAlign = 'center';
@@ -854,8 +880,12 @@
     let rot = h.naZemi ? Math.sin(kroky) * 0.06 : -0.08;
     if (vyhra && vyhra.faza === 'sklz') rot = 0;
     if (h.jazdi) {
-      kresliPostavu(IMG.macka, cx, sp + 3, 76, 58, h.smer, 0, bob * 0.7);
-      kresliPostavu(img, cx - 6 * h.smer, sp - 25 + bob * 0.7, 44 * pomer, 44, h.smer, rot * 0.5);
+      const d = MACKY[h.druhMacky] || MACKY.siva;
+      const vLete = h.druhMacky === 'lieta' && !h.naZemi;
+      const letBob = vLete ? Math.sin(svet.cas * 0.5) * (h.mav > 0 ? 3 : 1.2) : bob * 0.7;
+      const letRot = vLete ? clamp(h.vy * 0.03, -0.2, 0.15) * h.smer : 0;
+      kresliMacku(h.druhMacky, cx, sp + 3, h.smer, letBob, letRot);
+      kresliPostavu(img, cx - d.posun * h.smer, sp - d.sedlo + letBob, 44 * pomer, 44, h.smer, rot * 0.5);
     } else {
       kresliPostavu(img, cx, sp + 2, 50 * pomer, 50, h.smer, rot, bob);
     }
@@ -867,28 +897,18 @@
     c.fillStyle = aktivna ? '#ff4f9a' : '#d9d2c5'; c.fill();
     c.lineWidth = 2; c.strokeStyle = '#1d1a18'; c.stroke();
   }
+  // Laurinkina vlajka: tyč + zástavka, ktorá sa pri výhre zošmykne dole
   function kresliCiel() {
     const vl = svet.vlajka;
-    const x = vl.x * T + T / 2, vrch = 3 * T, spodok = vl.y * T;
-    c.fillStyle = '#4c9a3a'; c.fillRect(x - 2, vrch, 4, spodok - vrch);
-    c.lineWidth = 1.5; c.strokeStyle = '#1d1a18'; c.strokeRect(x - 2, vrch, 4, spodok - vrch);
-    c.beginPath(); c.arc(x, vrch - 5, 6, 0, 7); c.fillStyle = '#ffd23f'; c.fill(); c.stroke();
-    const fy = vrch + 6 + vl.vlajkaY;
-    c.beginPath(); c.moveTo(x - 2, fy); c.lineTo(x - 40, fy + 14); c.lineTo(x - 2, fy + 28); c.closePath();
-    c.fillStyle = '#ff4f9a'; c.fill(); c.lineWidth = 2; c.stroke();
-    c.font = '16px ' + FONT; c.textAlign = 'center'; c.fillStyle = '#fff'; c.fillText('★', x - 16, fy + 19);
+    const x = vl.x * T + T / 2, vrch = 3 * T - 10, spodok = vl.y * T + 2;
+    c.drawImage(IMG.vlajka_tyc, x - TYC_W / 2, vrch, TYC_W, spodok - vrch);
+    const z = IMG.vlajka_zastava, zw = 60, zh = zw * z.height / z.width;
+    c.drawImage(z, x + TYC_W / 2 - 6, vrch + 10 + vl.vlajkaY, zw, zh);
   }
+  // Laurinkin domček – hráč vojde do mačacích úst (dvere sú na x + 64)
   function kresliDomcek(x, spodok) {
-    const w = 128, h = 96;
-    c.lineWidth = 2.5; c.strokeStyle = '#1d1a18'; c.lineJoin = 'round';
-    c.beginPath(); c.rect(x, spodok - h, w, h); c.fillStyle = '#f2d7a6'; c.fill(); c.stroke();
-    c.beginPath(); c.moveTo(x - 14, spodok - h); c.lineTo(x + w / 2, spodok - h - 64); c.lineTo(x + w + 14, spodok - h); c.closePath();
-    c.fillStyle = '#d4583a'; c.fill(); c.stroke();
-    c.beginPath(); c.rect(x + w / 2 - 18, spodok - 54, 36, 54); c.fillStyle = '#7a4b1f'; c.fill(); c.stroke();
-    c.beginPath(); c.arc(x + w / 2 + 10, spodok - 26, 2.5, 0, 7); c.fillStyle = '#ffd23f'; c.fill();
-    c.beginPath(); c.rect(x + 12, spodok - 76, 26, 24); c.fillStyle = '#9fdcff'; c.fill(); c.stroke();
-    c.beginPath(); c.moveTo(x + 25, spodok - 76); c.lineTo(x + 25, spodok - 52); c.moveTo(x + 12, spodok - 64); c.lineTo(x + 38, spodok - 64); c.stroke();
-    c.font = '20px ' + FONT; c.textAlign = 'center'; c.fillStyle = '#ff4f9a'; c.fillText('♥', x + w / 2, spodok - h - 18);
+    const im = IMG.domcek, w = 220, h = w * im.height / im.width;
+    c.drawImage(im, x + 64 - 0.29 * w, spodok - h + 4, w, h);
   }
 
   function kresliHUD() {
@@ -900,7 +920,7 @@
     const txt = (t, x, y) => { c.lineWidth = 4; c.strokeStyle = '#1d1a18'; c.strokeText(t, x, y); c.fillStyle = '#fff'; c.fillText(t, x, y); };
     const pad = 14 + (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-l')) || 0) / s;
     c.drawImage(DL.minca, pad, 12, 24, 24); txt('× ' + hra.mince, pad + 26, 25);
-    c.drawImage(DL.srdce, pad + 100, 13, 24, 22); txt('× ' + hra.zivoty, pad + 130, 25);
+    c.drawImage(DL.srdce, pad + 100, 12, 24, 24); txt('× ' + hra.zivoty, pad + 130, 25);
     c.textAlign = 'center';
     txt('⭐ ' + hra.skore, W / s / 2, 25);
     c.restore();
@@ -909,7 +929,7 @@
   // ---------------------------------------------------------------- obrazovky a menu
   const jeDotyk = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   function ukaz(id) {
-    ['menu', 'pauza', 'koniec'].forEach(s => $(s).classList.toggle('skryte', s !== id));
+    ['menu', 'pauza', 'koniec', 'vyber'].forEach(s => $(s).classList.toggle('skryte', s !== id));
     $('dotyk').classList.toggle('skryte', !(jeDotyk && rezim === 'hra'));
     $('hud-tlacidla').classList.toggle('skryte', rezim === 'menu');
   }
@@ -945,7 +965,7 @@
   }
   function obnovMenu() {
     const vyber = vybranaPostava();
-    document.querySelectorAll('.karta').forEach(k => k.classList.toggle('vybrana', k.dataset.postava === vyber));
+    document.querySelectorAll('.karta[data-postava]').forEach(k => k.classList.toggle('vybrana', k.dataset.postava === vyber));
     const nc = $('nahlad-foto');
     const img = tvarImg ? Tvar.zloz(IMG.hrac_foto, META.hrac_foto, tvarImg) : IMG.hrac_foto;
     nc.width = img.width; nc.height = img.height;
@@ -980,7 +1000,9 @@
   }
   function napojMenu() {
     $('verzia').textContent = 'v' + window.HRA_VERZIA;
-    document.querySelectorAll('.karta').forEach(k => k.onclick = () => {
+    document.querySelectorAll('.karta[data-macka]').forEach(k => k.onclick = () => vyberMacku(k.dataset.macka));
+    $('btn-vyber-spat').onclick = () => vyberMacku(null);
+    document.querySelectorAll('.karta[data-postava]').forEach(k => k.onclick = () => {
       const p = k.dataset.postava;
       if (p === 'foto' && !tvarImg) { otvorFoto(); return; }
       st.set('laurinka.postava', p);

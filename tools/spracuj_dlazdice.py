@@ -15,8 +15,11 @@ SRC = ROOT / "kresby"
 OUT = ROOT / "assets"
 
 
-def nacitaj(meno):
-    a = np.asarray(Image.open(SRC / meno).convert("RGB")).astype(np.float32) / 255.0
+def nacitaj(meno, orez=None):
+    im = Image.open(SRC / meno).convert("RGB")
+    if orez:
+        im = im.crop(orez)
+    a = np.asarray(im).astype(np.float32) / 255.0
     mx, mn = a.max(-1), a.min(-1)
     sat = np.where(mx > 0, (mx - mn) / np.maximum(mx, 1e-6), 0)
     lum = 0.299 * a[..., 0] + 0.587 * a[..., 1] + 0.114 * a[..., 2]
@@ -43,7 +46,10 @@ def maska_vyrezu(papier, min_plocha=4000):
     return ndi.binary_fill_holes(m)
 
 
-def uloz(rgb, alpha, meno, max_rozmer, stvorec=False):
+def uloz(rgb, alpha, meno, max_rozmer, stvorec=False, oblast=None):
+    if oblast:  # (l, t, r, b) – iba časť kresby
+        l, t, r, b = oblast
+        rgb, alpha = rgb[t:b, l:r], alpha[t:b, l:r]
     ys, xs = np.where(alpha > 0.5)
     t, b, l, r = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
     rgba = np.dstack([rgb, alpha])[t:b, l:r]
@@ -127,9 +133,50 @@ def trava():
     print("trava.png", im.size, "plny pas od", (plny.min() - t) * s if len(plny) else None)
 
 
+def kresba(zdroj, meno, max_rozmer, orez=None, biela=True):
+    a, sat, lum, papier = nacitaj(zdroj, orez)
+    m = maska_vyrezu(papier)
+    rgb = vybiel_papier(a, papier, m) if biela else a
+    alpha = ndi.gaussian_filter(m.astype(np.float32), 1.0)
+    uloz(rgb, alpha, meno, max_rozmer)
+    return rgb, alpha
+
+
+def srdce():
+    a, sat, lum, papier = nacitaj("zivot_srdce.jpg")
+    m = maska_vyrezu(papier)
+    rgb = vybiel_papier(a, papier, m, (0.95, 0.45, 0.5))
+    uloz(rgb, ndi.gaussian_filter(m.astype(np.float32), 1.0), "srdce.png", 96)
+
+
+def vlajka():
+    a, sat, lum, papier = nacitaj("vlajka na konci.jpg")
+    m = maska_vyrezu(papier)
+    alpha = ndi.gaussian_filter(m.astype(np.float32), 1.0)
+    # zástavka = vpravo od tyče v hornej časti, zvyšok = tyč
+    zast = np.zeros_like(alpha); zast[:260, 458:] = alpha[:260, 458:]
+    tyc = alpha.copy(); tyc[:260, 458:] = 0
+    uloz(a, tyc, "vlajka_tyc.png", 400)
+    uloz(a, zast, "vlajka_zastava.png", 160)
+
+
+def lietajuca_macka():
+    rgb, alpha = kresba("macka_ktora vie lietat.jpg", "macka_lieta.png", 420, biela=False)
+    # hlava mačky = kocka na výber mačky
+    uloz(rgb, alpha, "macka_kocka.png", 128, stvorec=True, oblast=(250, 120, 615, 590))
+
+
 if __name__ == "__main__":
     minca()
     kocka("kocka_s_otaznikom.jpg", "kocka_otaznik.png")
     kocka("kocka_hneda.jpg", "kocka_hneda.png")
     oblak()
     trava()
+    kocka("kamen.jpg", "kamen.png")
+    kresba("krik.jpg", "krik.png", 300)
+    kresba("hory_vrchy.jpg", "kopec1.png", 360, orez=(0, 0, 742, 950))
+    kresba("hory_vrchy.jpg", "kopec2.png", 360, orez=(752, 0, 1280, 950))
+    kresba("zaverecny domcek.jpg", "domcek.png", 400)
+    srdce()
+    vlajka()
+    lietajuca_macka()

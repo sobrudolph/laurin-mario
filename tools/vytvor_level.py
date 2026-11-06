@@ -36,8 +36,8 @@ put(24, 12, "g")
 column(28, 1); column(29, 2)
 for x in (28, 29):
     put(x, 12 - (x - 27) - 1, "o")
-# mačka
-put(34, 12, "c")
+# kocka na výber mačky
+put(34, 12, "M")
 row(38, 42, 10, "=")
 for x in range(38, 43):
     put(x, 8, "o")
@@ -82,7 +82,7 @@ legend = """// LEVEL 1 – každý znak je jedno políčko (32x32 px). Výška l
 //   H  blok so srdiečkom (život navyše)          S  kameň
 //   =  drevená plošinka (dá sa na ňu vyskočiť zospodu)
 //   o  minca            g  hríb                   k  korytnačka
-//   c  mačka            P  štart hráča            C  kontrolná vlajka
+//   M  kocka na výber mačky (sivá / lietajúca)  P  štart hráča            C  kontrolná vlajka
 //   F  cieľová vlajka (stojí na zemi)
 // Riadky môžu byť rôzne dlhé, chýbajúce miesta sú prázdne.
 """
