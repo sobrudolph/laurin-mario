@@ -5,7 +5,7 @@ Skákačka s ručne kreslenými postavičkami. Beží v prehliadači a dá sa pr
 ## Súbory
 - `index.html`, `style.css` – stránka hry
 - `js/hra.js` – hra (fyzika, nepriatelia, mačka, kreslenie)
-- `js/level1.js` – **level, dá sa upravovať ako text** (legenda je na začiatku súboru)
+- `js/levely.js` – **všetky levely** (generuje `tools/vytvor_levely.py`, legenda je na začiatku súboru)
 - `js/foto.js` – fotenie tváre (fotka zostáva len v zariadení)
 - `js/zvuky.js` – zvukové efekty
 - `sw.js`, `manifest.webmanifest` – offline režim, ikona na plochu, automatické aktualizácie

@@ -101,3 +101,15 @@ button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
   position: fixed; top: 40%; left: 16px; right: 16px; text-align: center; z-index: 30; pointer-events: none;
   background: rgba(255,250,240,0.92); border: 3px solid var(--ink); border-radius: 16px; padding: 12px; font-size: 20px;
 }
+
+/* výber levelu v menu */
+.levely { gap: 8px; }
+button.level {
+  font: inherit; font-size: 16px; font-weight: bold; padding: 6px 14px; border-radius: 14px;
+  border: 3px solid #1d1a18; background: #fff; color: #1d1a18; cursor: pointer;
+}
+button.level.vybrany { background: #ff9cc8; }
+button.level:disabled { opacity: 0.45; cursor: default; }
+@media (max-height: 480px) and (orientation: landscape) {
+  button.level { font-size: 14px; padding: 4px 10px; }
+}

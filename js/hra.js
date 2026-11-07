@@ -192,7 +192,7 @@
   }
   function novyNepriatel(typ, tx, ty) {
     const w = 28, h = typ === 'hrib' ? 30 : 40;
-    return { typ, x: tx * T + (T - w) / 2, y: (ty + 1) * T - h, w, h, vx: -1, vy: 0, stav: 'chodi', t: 0, aktivny: false, chran: 0 };
+    return { typ, rych: rychlostNepr, x: tx * T + (T - w) / 2, y: (ty + 1) * T - h, w, h, vx: -rychlostNepr, vy: 0, stav: 'chodi', t: 0, aktivny: false, chran: 0 };
   }
   function novaMacka(x, y, druh = 'siva') {
     return { druh, x, y, w: MACKA.w, h: MACKA.h, vx: 0.6, vy: 0, stav: 'chodi', t: 0, domX: x, cakaj: 0, chod: 0 };
@@ -246,7 +246,7 @@
 
   // ---------------------------------------------------------------- hráč a stav hry
   let hrac = null;
-  let hra = { zivoty: 3, mince: 0, skore: 0, nepriatelia: 0 };
+  let hra = { zivoty: 3, mince: 0, skore: 0, nepriatelia: 0, level: 0 };
   let kamera = { x: 0, y: 0 };
   let rezim = 'menu'; // menu | hra | pauza | koniec | vyber
   let vyhra = null;
@@ -261,9 +261,19 @@
     };
   }
 
-  function novaHra() {
-    hra = { zivoty: 3, mince: 0, skore: 0, nepriatelia: 0, start: performance.now() };
-    svet = postavSvet(window.LEVEL1, null);
+  const LEVELY = window.LEVELY;
+  const OBLOHA = [['#5ec2f0', '#c8ecfb'], ['#4fb0e8', '#d6f1ff'], ['#86b2f5', '#ffe0ef']];
+  let rychlostNepr = 1;
+  const odomknute = () => clamp(st.get('laurinka.odomknute', 1), 1, LEVELY.length);
+  let vybranyLevel = 0;
+
+  // prenos = mince/body/životy z predošlého levelu (pri pokračovaní)
+  function novaHra(level = 0, prenos = null) {
+    hra = prenos
+      ? { ...prenos, level }
+      : { zivoty: 3, mince: 0, skore: 0, nepriatelia: 0, start: performance.now(), level };
+    rychlostNepr = LEVELY[level].rychlost || 1;
+    svet = postavSvet(LEVELY[level].riadky, null);
     vytvorPozadie(svet.W * T);
     hrac = novyHrac();
     vyhra = null;
@@ -272,7 +282,7 @@
   }
   function znovuOdCheckpointu() {
     const cp = svet.checkpoint;
-    svet = postavSvet(window.LEVEL1, cp);
+    svet = postavSvet(LEVELY[hra.level].riadky, cp);
     hrac = novyHrac();
     vyhra = null;
     kamera.x = clamp(hrac.x - sirkaPohladu * 0.4, 0, svet.W * T - sirkaPohladu);
@@ -495,7 +505,7 @@
     if (h.naZemi && !bolNaZemi) {
       const ty = Math.floor((h.y + h.h + 1) / T);
       for (let x = Math.floor(h.x / T); x <= Math.floor((h.x + h.w - 0.01) / T); x++) {
-        if (tile(x, ty) === 'M') { otvorVyberMacky(); break; }
+        if (tile(x, ty) === 'M') { svet.macka0 = { x: x + 1, y: ty - 1 }; otvorVyberMacky(); break; }
       }
     }
     if (naraz) {
@@ -567,7 +577,7 @@
       if (n.stav === 'placka') continue;
       if (n.stav === 'pancier') {
         n.vx = 0;
-        if (n.t > 480) { n.stav = 'chodi'; n.y -= 14; n.h = 40; n.vx = hrac.x < n.x ? -1 : 1; n.t = 0; }
+        if (n.t > 480) { n.stav = 'chodi'; n.y -= 14; n.h = 40; n.vx = (hrac.x < n.x ? -1 : 1) * (n.rych || 1); n.t = 0; }
       }
       n.vy = Math.min(n.vy + 0.5, F.maxPad);
       const pred = n.vx;
@@ -673,7 +683,14 @@
       const naj = st.get('laurinka.najSkore', 0);
       if (hra.skore > naj) st.set('laurinka.najSkore', hra.skore);
     }
-    $('koniec-nadpis').textContent = vyhral ? 'Hurá! Level je hotový! 🎉' : 'Koniec hry';
+    const posledny = hra.level >= LEVELY.length - 1;
+    if (vyhral && !posledny) st.set('laurinka.odomknute', Math.max(odomknute(), hra.level + 2));
+    $('koniec-nadpis').textContent = !vyhral ? 'Koniec hry'
+      : posledny ? 'Hurá! Prešiel si celú hru! 🏆' : `Hurá! Level ${hra.level + 1} je hotový! 🎉`;
+    $('btn-dalsi').classList.toggle('skryte', !vyhral || posledny);
+    $('btn-dalsi').textContent = `▶ Level ${hra.level + 2}`;
+    $('btn-znova').classList.toggle('hlavne', !vyhral || posledny);
+    $('btn-znova').classList.toggle('sekundarne', vyhral && !posledny);
     $('koniec-info').innerHTML =
       `💰 Mince: <b>${hra.mince}</b><br>⭐ Body: <b>${hra.skore}</b><br>` +
       `🍄 Porazení nepriatelia: <b>${hra.nepriatelia}</b><br>⏱ Čas: <b>${Math.floor(sek / 60)}:${String(sek % 60).padStart(2, '0')}</b>` +
@@ -752,7 +769,8 @@
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     // obloha
     const gr = c.createLinearGradient(0, 0, 0, H);
-    gr.addColorStop(0, '#5ec2f0'); gr.addColorStop(1, '#c8ecfb');
+    const ob = OBLOHA[hra.level] || OBLOHA[0];
+    gr.addColorStop(0, ob[0]); gr.addColorStop(1, ob[1]);
     c.fillStyle = gr; c.fillRect(0, 0, W, H);
     if (!svet) return;
     c.setTransform(dpr * mierka, 0, 0, dpr * mierka, 0, dpr * odsadenieY);
@@ -922,7 +940,7 @@
     c.drawImage(DL.minca, pad, 12, 24, 24); txt('× ' + hra.mince, pad + 26, 25);
     c.drawImage(DL.srdce, pad + 100, 12, 24, 24); txt('× ' + hra.zivoty, pad + 130, 25);
     c.textAlign = 'center';
-    txt('⭐ ' + hra.skore, W / s / 2, 25);
+    txt('Level ' + (hra.level + 1) + '   ⭐ ' + hra.skore, W / s / 2, 25);
     c.restore();
   }
 
@@ -934,10 +952,11 @@
     $('hud-tlacidla').classList.toggle('skryte', rezim === 'menu');
   }
 
-  function spustiHru() {
+  function spustiHru(level = vybranyLevel, prenos = null) {
     Zvuky.odomkni();
     pripravPostavu();
-    novaHra();
+    vybranyLevel = level;
+    novaHra(level, prenos);
     rezim = 'hra';
     ukaz(null);
   }
@@ -979,6 +998,20 @@
     k.drawImage(img, 0, 0);
     $('btn-zmaz').classList.toggle('skryte', !tvarImg);
     $('btn-odfot').textContent = tvarImg ? '📸 Odfotiť znova' : '📸 Odfotiť tvár';
+    const odo = odomknute();
+    vybranyLevel = clamp(vybranyLevel, 0, odo - 1);
+    const box = $('levely');
+    box.innerHTML = '';
+    LEVELY.forEach((lv, i) => {
+      const b = document.createElement('button');
+      const zamknuty = i >= odo;
+      b.className = 'level' + (i === vybranyLevel ? ' vybrany' : '');
+      b.disabled = zamknuty;
+      b.textContent = (zamknuty ? '🔒 ' : '') + 'Level ' + (i + 1);
+      b.title = lv.nazov;
+      b.onclick = () => { vybranyLevel = i; obnovMenu(); };
+      box.appendChild(b);
+    });
     const naj = st.get('laurinka.najSkore', 0);
     $('naj-skore').textContent = naj ? '🏆 Najlepšie skóre: ' + naj : '';
   }
@@ -1008,7 +1041,7 @@
       st.set('laurinka.postava', p);
       obnovMenu();
     });
-    $('btn-hraj').onclick = spustiHru;
+    $('btn-hraj').onclick = () => spustiHru(vybranyLevel);
     $('btn-odfot').onclick = otvorFoto;
     $('btn-zmaz').onclick = async () => {
       if (!confirm('Naozaj zmazať fotku tváre z tohto zariadenia?')) return;
@@ -1017,7 +1050,11 @@
     $('btn-pauza').onclick = prepniPauzu;
     $('btn-pokracuj').onclick = prepniPauzu;
     $('btn-menu-p').onclick = doMenu;
-    $('btn-znova').onclick = spustiHru;
+    $('btn-znova').onclick = () => spustiHru(hra.level);
+    $('btn-dalsi').onclick = () => {
+      const { zivoty, mince, skore, nepriatelia, start } = hra;
+      spustiHru(hra.level + 1, { zivoty, mince, skore, nepriatelia, start });
+    };
     $('btn-menu-k').onclick = doMenu;
     const tl = $('btn-zvuk');
     const obnovZvuk = () => { tl.textContent = Zvuky.ticho ? '🔇' : '🔊'; };
@@ -1079,6 +1116,7 @@
     novaHra();
     $('nacitavanie').classList.add('skryte');
     rezim = 'menu';
+    vybranyLevel = odomknute() - 1;
     ukaz('menu');
     obnovMenu();
     requestAnimationFrame(slucka);
